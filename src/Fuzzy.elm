@@ -9,6 +9,7 @@ module Fuzzy (match) where
 
 import String
 import Char
+import Regex
 
 
 {-| Calculate the Levenshtein distance between two Strings.
@@ -76,22 +77,53 @@ match needle hay =
         if shouldLower then String.toLower hay else hay
       needle' =
         if shouldLower then String.toLower needle else needle
-      -- Reduce the hay based on needle, reduce the needle based on the reduced hay.
-      reducedHay =
-        reduce needle' hay'
-      -- Reduce the needle based on the reduced hay.
-      reducedNeedle =
-        reduce reducedHay needle'
-      -- Add the distance between the reduced hay and the reduced needle to the score.
-      reducedDistance =
-        distance reducedHay reducedNeedle
-          |> toFloat
-      -- For each character removed from hay add 1/1000 to score. Enables ordering within a match category.
-      hayPenalty =
-        (String.length hay' - String.length reducedHay |> toFloat) / 1000
-      -- For each character removed from needle add 1 to score.
-      needlePenalty =
-        String.length needle' - String.length reducedNeedle |> toFloat
+      -- smartSentence: If needle and hay contains separators then enable smartSentence.
+      separators =
+        Regex.regex "[, \\/:-;.]"
+      sentenceMode =
+        Regex.contains separators hay' && Regex.contains separators needle'
+      needles =
+        if sentenceMode then Regex.split Regex.All separators needle' else [ needle' ]
+      hays =
+        if sentenceMode then Regex.split Regex.All separators hay' else [ hay' ]
+      -- Score for one needle hay pair
+      score n h =
+        let
+            -- Reduce the hay based on needle, reduce the needle based on the reduced hay.
+            reducedHay =
+              reduce n h
+            -- Reduce the needle based on the reduced hay.
+            reducedNeedle =
+              reduce reducedHay n
+            -- Add the distance between the reduced hay and the reduced needle to the score.
+            reducedDistance =
+              distance reducedHay reducedNeedle
+                |> toFloat
+            -- For each character removed from hay add 1/1000 to score. Enables ordering within a match category.
+            hayPenalty =
+              (String.length h - String.length reducedHay |> toFloat) / 1000
+             -- For each character removed from needle add 1 to score.
+            needlePenalty =
+              String.length n - String.length reducedNeedle |> toFloat
+        in
+            reducedDistance + needlePenalty + hayPenalty
+      -- The best score for a needle against a list of hays
+      minScore n hs =
+        List.foldl (\e prev-> min (score n e) prev) (toFloat (String.length n)) hs
+      -- Sentence logic, reduce hays on left and right side depending on current needle context
+      reduceHays ns c hs =
+        let
+            -- Reduce the left side of hays, the second needle do not need to match the first hay and so on.
+            reduceLeft ns c hs =
+              List.drop c hs
+            -- Reduce the right side of hays, the first needle do not need to match against the last hay if there are other needles and so on.
+            reduceRight ns c hs =
+              List.take ((List.length hs) - (ns - c - 1)) hs
+            -- Pad the hay stack to prevent hay starvation if we have more needles than hays
+            padHays ns hs =
+              hs ++ (List.repeat (ns - (List.length hs)) "")
+        in
+            hs |> padHays ns |> reduceRight ns c |> reduceLeft ns c
   in
-      reducedDistance + needlePenalty + hayPenalty
+      fst (List.foldl (\n (prev, num) -> (((minScore n (reduceHays (List.length needles) num hays)) + prev), (num + 1)) ) (0, 0) needles)
 
