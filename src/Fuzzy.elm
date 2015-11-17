@@ -8,6 +8,7 @@ module Fuzzy (match) where
 -}
 
 import String
+import Char
 
 
 {-| Calculate the Levenshtein distance between two Strings.
@@ -68,22 +69,29 @@ The order of the arguments are significant. Lower score is better.
 match : String -> String -> Float
 match needle hay =
   let
+      -- smartCase: If needle does not contain uppercase then do String.toLower on needle and hay.
+      shouldLower =
+        String.any Char.isUpper needle |> not
+      hay' =
+        if shouldLower then String.toLower hay else hay
+      needle' =
+        if shouldLower then String.toLower needle else needle
       -- Reduce the hay based on needle, reduce the needle based on the reduced hay.
       reducedHay =
-        reduce needle hay
+        reduce needle' hay'
       -- Reduce the needle based on the reduced hay.
       reducedNeedle =
-        reduce reducedHay needle
+        reduce reducedHay needle'
       -- Add the distance between the reduced hay and the reduced needle to the score.
       reducedDistance =
         distance reducedHay reducedNeedle
           |> toFloat
       -- For each character removed from hay add 1/1000 to score. Enables ordering within a match category.
       hayPenalty =
-        (String.length hay - String.length reducedHay |> toFloat) / 1000
+        (String.length hay' - String.length reducedHay |> toFloat) / 1000
       -- For each character removed from needle add 1 to score.
       needlePenalty =
-        String.length needle - String.length reducedNeedle |> toFloat
+        String.length needle' - String.length reducedNeedle |> toFloat
   in
       reducedDistance + needlePenalty + hayPenalty
 
