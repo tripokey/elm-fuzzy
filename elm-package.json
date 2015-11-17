@@ -1,12 +1,14 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "summary": "A library for fuzzy string matching",
     "repository": "https://github.com/tripokey/elm-fuzzy.git",
     "license": "BSD3",
     "source-directories": [
         "src"
     ],
-    "exposed-modules": ["Fuzzy"],
+    "exposed-modules": [
+        "Fuzzy"
+    ],
     "dependencies": {
         "elm-lang/core": "2.1.0 <= v < 3.0.0"
     },
