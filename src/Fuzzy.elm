@@ -8,8 +8,6 @@ module Fuzzy (match) where
 -}
 
 import String
-import Char
-import Regex
 
 
 {-| Calculate the Levenshtein distance between two Strings.
@@ -60,32 +58,24 @@ reduce needle hay =
         |> String.reverse
 
 
-{-| Perform fuzzy matching between a String (needle) and another String (hay).
-The order of the arguments are significant. Lower score is better.
+{-| Perform fuzzy matching between a List String (needle) and another List String (hay).
+The order of the arguments are significant. Lower score is better. Each element in the
+Lists represents one "word".
 
-    Fuzzy.match "test" "test" == 0
-    Fuzzy.match "tst" "test" == 0.001
-    List.sortBy (Fuzzy.match "hrdevi") ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","disk","screen","mouse","keyboard","computer"]
+    let
+        query = "/usr/lcoa/bin/sh"
+        target = "/usr/local/bin/sh"
+        sep = "/"
+    in
+        Fuzzy.match (String.split query) (String.split hay) == 2.001
+
+    Fuzzy.match ["test"] ["test]" == 0
+    Fuzzy.match ["tst"] ["test"] == 0.001
+    List.sortBy (\hay -> Fuzzy.match ["hrdevi"] [hay]) ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","disk","screen","mouse","keyboard","computer"]
 -}
-match : String -> String -> Float
-match needle hay =
+match : List String -> List String -> Float
+match needles hays =
   let
-      -- smartCase: If needle does not contain uppercase then do String.toLower on needle and hay.
-      shouldLower =
-        String.any Char.isUpper needle |> not
-      hay' =
-        if shouldLower then String.toLower hay else hay
-      needle' =
-        if shouldLower then String.toLower needle else needle
-      -- smartSentence: If needle and hay contains separators then enable smartSentence.
-      separators =
-        Regex.regex "[, \\/:-;.]"
-      sentenceMode =
-        Regex.contains separators hay' && Regex.contains separators needle'
-      needles =
-        if sentenceMode then Regex.split Regex.All separators needle' else [ needle' ]
-      hays =
-        if sentenceMode then Regex.split Regex.All separators hay' else [ hay' ]
       -- Score for one needle hay pair
       score n h =
         let
