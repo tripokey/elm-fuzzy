@@ -8,54 +8,77 @@ module Fuzzy (match) where
 -}
 
 import String
+import Maybe
 
+type alias Model = List Int
 
-{-| Calculate the Levenshtein distance between two Strings.
+hayPenalty = 1
+needlePenalty = 1000
+movePenalty = 100
 
-    distance "test" "test" == 0
-    distance "test" "tast" == 1
+initialModel : Model
+initialModel =
+    []
+
+{-| Calculate how many moves that is required to order the entries
+
+quickPenalty [5,4,3,2,1] == 4
 -}
-distance : String -> String -> Int
-distance a b =
-  if a == b
+quickPenalty : List Int -> Int
+quickPenalty entries =
+  if List.isEmpty entries
   then
     0
-  else if String.isEmpty a
-  then
-    String.length b
-  else if String.isEmpty b
-  then
-    String.length a
   else
     let
-        cost =
-          if (String.right 1 a) == (String.right 1 b) then 0 else 1
-        left =
-          (distance (String.dropRight 1 a) b) + 1
-        right =
-          (distance a (String.dropRight 1 b)) + 1
-        both =
-          (distance (String.dropRight 1 a) (String.dropRight 1 b)) + cost
+        head =
+          List.head entries |> Maybe.withDefault 0
+        tail =
+          List.tail entries |> Maybe.withDefault []
+        partition =
+          List.partition (\e -> e < head) tail
+        smaller =
+          fst partition
+        larger =
+          snd partition
+        penalty =
+          if List.isEmpty smaller then 0 else 1
     in
-        min (min left right) both
+        (quickPenalty smaller) + penalty + (quickPenalty larger)
 
 
-{-| For each character in hay remove it if it is not present in needle,
-if it is present in needle remove one instance of it from needle.
-Return the reduced hay.
+{-| Calculate the fuzzy distance between two Strings.
 
-    reduce "tts" "testt" == "tst"
+    distance "test" "test" == 0
+    distance "test" "tast" == 1001
 -}
-reduce : String -> String -> String
-reduce needle hay =
+distance : String -> String -> Int
+distance needle hay =
   let
-      countChar c str =
-        String.foldl (\e sum -> if e == c then sum + 1 else sum) 0 str
-      filter c sum =
-        if countChar c needle > countChar c sum then String.cons c sum else sum
+      accumulate c indexList =
+        let
+            indexes =
+                String.indexes (String.fromChar c) hay
+            hayIndex =
+                List.filter (\e -> not (List.member e indexList) ) indexes
+                  |> List.head
+        in
+            case hayIndex of
+              Just v ->
+                indexList ++ [v]
+
+              Nothing ->
+                indexList
+      accumulated =
+        String.foldl accumulate initialModel needle
+      mPenalty =
+        (accumulated |> quickPenalty) * movePenalty
+      hPenalty =
+        (String.length hay - (accumulated |> List.length)) * hayPenalty
+      nPenalty =
+        (String.length needle - (accumulated |> List.length)) * needlePenalty
   in
-      String.foldl filter "" hay
-        |> String.reverse
+      mPenalty + hPenalty + nPenalty
 
 
 {-| Perform fuzzy matching between a List String (needle) and another List String (hay).
@@ -67,39 +90,20 @@ Lists represents one "word".
         target = "/usr/local/bin/sh"
         sep = "/"
     in
-        Fuzzy.match (String.split query) (String.split hay) == 2.001
+        Fuzzy.match (String.split sep query) (String.split sep hay) == 101
 
     Fuzzy.match ["test"] ["test]" == 0
-    Fuzzy.match ["tst"] ["test"] == 0.001
-    List.sortBy (\hay -> Fuzzy.match ["hrdevi"] [hay]) ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","disk","screen","mouse","keyboard","computer"]
+    Fuzzy.match ["tst"] ["test"] == 1
+    Fuzzy.match ["test"] ["tste"] == 100
+    Fuzzy.match ["test"] ["tst"] == 1000
+    List.sortBy (\hay -> Fuzzy.match ["hrdevi"] [hay]) ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
 -}
-match : List String -> List String -> Float
+match : List String -> List String -> Int
 match needles hays =
   let
-      -- Score for one needle hay pair
-      score n h =
-        let
-            -- Reduce the hay based on needle, reduce the needle based on the reduced hay.
-            reducedHay =
-              reduce n h
-            -- Reduce the needle based on the reduced hay.
-            reducedNeedle =
-              reduce reducedHay n
-            -- Add the distance between the reduced hay and the reduced needle to the score.
-            reducedDistance =
-              distance reducedHay reducedNeedle
-                |> toFloat
-            -- For each character removed from hay add 1/1000 to score. Enables ordering within a match category.
-            hayPenalty =
-              (String.length h - String.length reducedHay |> toFloat) / 1000
-             -- For each character removed from needle add 1 to score.
-            needlePenalty =
-              String.length n - String.length reducedNeedle |> toFloat
-        in
-            reducedDistance + needlePenalty + hayPenalty
       -- The best score for a needle against a list of hays
       minScore n hs =
-        List.foldl (\e prev-> min (score n e) prev) (toFloat (String.length n)) hs
+        List.foldl (\e prev-> min (distance n e) prev) ((String.length n) * needlePenalty) hs
       -- Sentence logic, reduce hays on left and right side depending on current needle context
       reduceHays ns c hs =
         let

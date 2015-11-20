@@ -61,7 +61,7 @@ update action model =
       }
 
 
-viewElement : (Float, String) -> Html
+viewElement : (Int, String) -> Html
 viewElement (score, item) =
   div []
     [ span
