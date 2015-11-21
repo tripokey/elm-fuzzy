@@ -3,7 +3,6 @@ import Html exposing (Html, input, div, text, button, span)
 import Html.Events exposing (on, targetValue, onClick)
 import Html.Attributes exposing (placeholder, style)
 import Fuzzy
-import Regex
 import String
 
 
@@ -74,34 +73,24 @@ viewElement (score, item) =
     ]
 
 
-split : String -> String -> List String
-split separators item =
-  let
-      separators' =
-        "[" ++ Regex.escape separators ++ "]" |> Regex.regex
-  in
-      Regex.split Regex.All separators' item
-
-
 viewHayStack : Model -> Html
 viewHayStack model =
   let
-      split' =
-        split model.separators
       processCase item =
         if model.caseInsensitive
         then
           String.toLower item
         else
           item
-      needle' =
+      separators =
+        String.toList (processCase model.separators)
+          |> List.map String.fromChar
+      needle =
         processCase model.needle
-      needles =
-        split' needle'
   in
       div []
         (model.haystack
-          |> List.map (\hay -> (Fuzzy.match needles (split' (processCase hay)), hay))
+          |> List.map (\hay -> (Fuzzy.match separators needle (processCase hay), hay))
           |> List.sortBy fst
           |> List.map viewElement)
 

@@ -81,26 +81,78 @@ distance needle hay =
       mPenalty + hPenalty + nPenalty
 
 
-{-| Perform fuzzy matching between a List String (needle) and another List String (hay).
-The order of the arguments are significant. Lower score is better. Each element in the
-Lists represents one "word".
-
-    let
-        query = "/usr/lcoa/bin/sh"
-        target = "/usr/local/bin/sh"
-        sep = "/"
-    in
-        Fuzzy.match (String.split sep query) (String.split sep hay) == 101
-
-    Fuzzy.match ["test"] ["test]" == 0
-    Fuzzy.match ["tst"] ["test"] == 1
-    Fuzzy.match ["test"] ["tste"] == 100
-    Fuzzy.match ["test"] ["tst"] == 1000
-    List.sortBy (\hay -> Fuzzy.match ["hrdevi"] [hay]) ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
+{-| Split a string based on a list of separators keeping the separators.
 -}
-match : List String -> List String -> Int
-match needles hays =
+dissect : List String -> List String -> List String
+dissect separators strings =
+  if List.isEmpty separators
+  then
+    strings
+  else
+    let
+        head =
+          List.head separators |> Maybe.withDefault ""
+        tail =
+          List.tail separators |> Maybe.withDefault []
+        dissectEntry entry =
+          let
+              entryLength =
+                String.length entry
+              indexes =
+                  String.indexes head entry
+              separatorLength =
+                String.length head
+              slice index (prevIndex, sum) =
+                let
+                    precedingSlice =
+                      if prevIndex == index
+                      then
+                        []
+                      else
+                        [String.slice prevIndex index entry]
+                    separatorSlice =
+                      [String.slice index (index + separatorLength) entry]
+                in
+                    (index+separatorLength, sum ++ precedingSlice ++ separatorSlice)
+              result =
+                List.foldl slice (0,[]) indexes
+              first =
+                snd result
+              lastIndex =
+                fst result
+              last =
+                if lastIndex == entryLength
+                then
+                  []
+                else
+                  [String.slice lastIndex entryLength entry]
+          in
+              first ++ last
+        dissected =
+          List.foldl (\e s -> s ++ dissectEntry e) [] strings
+    in
+        dissect tail dissected
+
+
+{-| Perform fuzzy matching between a query String (needle) and a target String (hay).
+The order of the arguments are significant. Lower score is better. Specifying some
+separators will allow for partial matching within a sentence.
+
+    Fuzzy.match [] "test" "test" == 0
+    Fuzzy.match [] "tst" "test" == 1
+    Fuzzy.match [] "test" "tste" == 100
+    Fuzzy.match [] "test" "tst" == 1000
+    Fuzzy.match ["/"] "/u/b/s" "/usr/local/bin/sh" == 5
+    Fuzzy.match [] "/u/b/s" "/usr/local/bin/sh" == 211
+    List.sortBy (Fuzzy.match [] "hrdevi") ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
+-}
+match : List String -> String -> String -> Int
+match separators needle hay =
   let
+      needles =
+        dissect separators [needle]
+      hays =
+        dissect separators [hay]
       -- The best score for a needle against a list of hays
       minScore n hs =
         List.foldl (\e prev-> min (distance n e) prev) ((String.length n) * needlePenalty) hs
