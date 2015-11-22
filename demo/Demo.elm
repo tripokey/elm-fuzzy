@@ -42,21 +42,21 @@ update : Action -> Model -> Model
 update action model =
   case action of
     Filter val ->
-      {model | needle <- val }
+      {model | needle = val }
 
     Update val ->
-      {model | prototype <- val }
+      {model | prototype = val }
 
     Separate val ->
-      {model | separators <- val }
+      {model | separators = val }
 
     CaseFlip ->
-      {model | caseInsensitive <- not model.caseInsensitive }
+      {model | caseInsensitive = not model.caseInsensitive }
 
     Add ->
       { model
-      | prototype <- ""
-      , haystack <- model.prototype :: model.haystack
+      | prototype = ""
+      , haystack = model.prototype :: model.haystack
       }
 
 
