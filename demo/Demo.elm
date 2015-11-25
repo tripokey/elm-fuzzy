@@ -90,7 +90,7 @@ viewHayStack model =
   in
       div []
         (model.haystack
-          |> List.map (\hay -> (Fuzzy.match separators needle (processCase hay), hay))
+          |> List.map (\hay -> (Fuzzy.match [] separators needle (processCase hay), hay))
           |> List.sortBy fst
           |> List.map viewElement)
 
