@@ -5,7 +5,6 @@ import Html.Attributes exposing (placeholder, style)
 import Fuzzy
 import String
 
-
 type alias Model =
   { needle: String
   , prototype: String
@@ -60,17 +59,41 @@ update action model =
       }
 
 
-viewElement : (Int, String) -> Html
-viewElement (score, item) =
-  div []
-    [ span
-      [ style 
-        [ ("color", "red")
-        ] 
-      ]
-      [ text ((toString score) ++ " ") ]
-    , text item
-    ]
+viewElement : (Fuzzy.Result, String) -> Html
+viewElement (result, item) =
+  let
+      isKey index =
+        List.foldl (\e sum -> if not sum then List.member (index-e.offset) e.keys else sum) False result.matches
+      isMatch index =
+        List.foldl (\e sum -> if not sum then (e.offset <= index && (e.offset + e.length) > index) else sum) False result.matches
+      color index =
+        if isKey index
+        then
+          [("color", "red")]
+        else
+          []
+      bgColor index =
+        if isMatch index
+        then
+          [("background-color", "yellow")]
+        else
+          []
+      hStyle index =
+        style ((color index) ++ (bgColor index))
+      accumulateChar c (sum, index) =
+        (sum ++ [span [hStyle index] [c |> String.fromChar |> text]], index + 1)
+      highlight =
+        String.foldl accumulateChar ([], 0) item
+  in
+      div []
+        [ span
+          [ style
+            [ ("color", "red")
+            ]
+          ]
+          [ text ((toString result.score) ++ " ") ]
+        , span [] (fst highlight)
+        ]
 
 
 viewHayStack : Model -> Html
@@ -87,11 +110,14 @@ viewHayStack model =
           |> List.map String.fromChar
       needle =
         processCase model.needle
+      scoredHays =
+        model.haystack
+          |> List.map (\hay -> (Fuzzy.match [] separators needle (processCase hay), hay))
+      sortedHays =
+        List.sortBy (\e -> fst e |> .score) scoredHays
   in
       div []
-        (model.haystack
-          |> List.map (\hay -> (Fuzzy.match [] separators needle (processCase hay), hay))
-          |> List.sortBy fst
+        (sortedHays
           |> List.map viewElement)
 
 

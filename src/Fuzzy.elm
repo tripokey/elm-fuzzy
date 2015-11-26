@@ -1,4 +1,4 @@
-module Fuzzy (match, addPenalty, removePenalty, movePenalty) where
+module Fuzzy (match, addPenalty, removePenalty, movePenalty, Result, Match, Key) where
 
 {-| This is library for performing fuzzy string matching.
 
@@ -6,7 +6,7 @@ module Fuzzy (match, addPenalty, removePenalty, movePenalty) where
 @docs addPenalty, removePenalty, movePenalty
 
 # Matching
-@docs match
+@docs match, Result, Match, Key
 
 -}
 
@@ -16,6 +16,24 @@ import Maybe
 type Config = AddPenalty Int
   | RemovePenalty Int
   | MovePenalty Int
+
+{-| Represents a matching character in a Match.
+-}
+type alias Key = Int
+
+{-| Represents a matching word in hay.
+score is the score that this Match contributes to the total score in a Result.
+offset is the index where this match starts in the hay.
+length is the length of the match.
+keys is a list of matching indexes within the word. The keys are relative to the offset.
+-}
+type alias Match = {score: Int, offset: Int, length: Int, keys: List Key}
+
+{-| Represents the result of a match.
+score is the total score of the result.
+matches is a list of matching words within the hay.
+-}
+type alias Result = {score: Int, matches: List Match}
 
 {-| Create a penalty configuration that is applied to each additional character in hay.
 -}
@@ -53,15 +71,15 @@ initialModel : Model
 initialModel =
     []
 
-{-| Calculate how many moves that is required to order the entries
+{-| Sort the entries and calculate how many moves that was required.
 
-quickPenalty [5,4,3,2,1] == 4
+quickSort [5,4,3,2,1] == (4, [1,2,3,4,5])
 -}
-quickPenalty : List Int -> Int
-quickPenalty entries =
+quickSort : List Key -> (Int, List Key)
+quickSort entries =
   if List.isEmpty entries
   then
-    0
+    (0, [])
   else
     let
         head =
@@ -71,21 +89,21 @@ quickPenalty entries =
         partition =
           List.partition (\e -> e < head) tail
         smaller =
-          fst partition
+          quickSort (fst partition)
         larger =
-          snd partition
+          quickSort (snd partition)
         penalty =
-          if List.isEmpty smaller then 0 else 1
+          if List.isEmpty (snd smaller) then 0 else 1
     in
-        (quickPenalty smaller) + penalty + (quickPenalty larger)
+        ((fst smaller) + penalty + (fst larger), (snd smaller) ++ [head] ++ (snd larger))
 
 
 {-| Calculate the fuzzy distance between two Strings.
 
-    distance config "test" "test" == 0
-    distance config "test" "tast" == 1001
+    (distance config "test" "test").score == 0
+    (distance config "test" "tast").score == 1001
 -}
-distance : ConfigModel -> String -> String -> Int
+distance : ConfigModel -> String -> String -> Match
 distance config needle hay =
   let
       accumulate c indexList =
@@ -104,14 +122,16 @@ distance config needle hay =
                 indexList
       accumulated =
         String.foldl accumulate initialModel needle
+      sorted =
+        accumulated |> quickSort
       mPenalty =
-        (accumulated |> quickPenalty) * config.movePenalty
+        (fst sorted) * config.movePenalty
       hPenalty =
         (String.length hay - (accumulated |> List.length)) * config.addPenalty
       nPenalty =
         (String.length needle - (accumulated |> List.length)) * config.removePenalty
   in
-      mPenalty + hPenalty + nPenalty
+      Match (mPenalty + hPenalty + nPenalty) 0 (String.length hay) (snd sorted)
 
 
 {-| Split a string based on a list of separators keeping the separators.
@@ -172,16 +192,20 @@ The order of the arguments are significant. Lower score is better. Specifying so
 separators will allow for partial matching within a sentence. The default configuration is
 movePenalty = 100, addPenalty = 1, removePenalty = 1000.
 
-    Fuzzy.match [] [] "test" "test" == 0
-    Fuzzy.match [] [] "tst" "test" == 1
-    Fuzzy.match [addPenalty 10000] [] "tst" "test" == 10000
-    Fuzzy.match [] [] "test" "tste" == 100
-    Fuzzy.match [] [] "test" "tst" == 1000
-    Fuzzy.match [] ["/"] "/u/b/s" "/usr/local/bin/sh" == 5
-    Fuzzy.match [] [] "/u/b/s" "/usr/local/bin/sh" == 211
-    List.sortBy (Fuzzy.match [] [] "hrdevi") ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
+    let
+        simpleMatch config separators needle hay =
+          match config separators needle hay |> .score
+    in
+        simpleMatch [] [] "test" "test" == 0
+        simpleMatch [] [] "tst" "test" == 1
+        simpleMatch [addPenalty 10000] [] "tst" "test" == 10000
+        simpleMatch [] [] "test" "tste" == 100
+        simpleMatch [] [] "test" "tst" == 1000
+        simpleMatch [] ["/"] "/u/b/s" "/usr/local/bin/sh" == 5
+        simpleMatch [] [] "/u/b/s" "/usr/local/bin/sh" == 211
+        List.sortBy (simpleMatch [] [] "hrdevi") ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
 -}
-match : List Config -> List String -> String -> String -> Int
+match : List Config -> List String -> String -> String -> Result
 match configs separators needle hay =
   let
       accumulateConfig c sum =
@@ -201,20 +225,36 @@ match configs separators needle hay =
       hays =
         dissect separators [hay]
       -- The best score for a needle against a list of hays
-      minScore n hs =
+      minScore n (offset, hs) =
         let
             initialPenalty =
                 ((String.length n) * config.removePenalty) +
                 ((String.length n) * config.movePenalty) +
                 ((String.length hay) * config.addPenalty)
+            initialMatch =
+                Match initialPenalty offset 0 []
+            accumulateMatch e (prev, prevOffset) =
+              let
+                  eDistance =
+                    distance config n e
+                  newOffset =
+                    prevOffset + (String.length e)
+                  newMatch =
+                    if eDistance.score < prev.score
+                    then
+                      {eDistance | offset = prevOffset}
+                    else
+                      prev
+              in
+                  (newMatch, newOffset)
         in
-            List.foldl (\e prev-> min (distance config n e) prev) initialPenalty hs
+            fst (List.foldl accumulateMatch (initialMatch, offset) hs)
       -- Sentence logic, reduce hays on left and right side depending on current needle context
       reduceHays ns c hs =
         let
             -- Reduce the left side of hays, the second needle do not need to match the first hay and so on.
             reduceLeft ns c hs =
-              List.drop c hs
+              (List.foldl (\e sum -> (String.length e) + sum) 0 (List.take c hs), List.drop c hs)
             -- Reduce the right side of hays, the first needle do not need to match against the last hay if there are other needles and so on.
             reduceRight ns c hs =
               List.take ((List.length hs) - (ns - c - 1)) hs
@@ -223,6 +263,17 @@ match configs separators needle hay =
               hs ++ (List.repeat (ns - (List.length hs)) "")
         in
             hs |> padHays ns |> reduceRight ns c |> reduceLeft ns c
+      accumulateResult n (prev, num) =
+        let
+            matchResult =
+              minScore n (reduceHays (List.length needles) num hays)
+            newResult =
+              {prev | score = matchResult.score + prev.score
+              , matches = prev.matches ++ [matchResult]}
+        in
+            (newResult, (num + 1))
+      initialResult =
+          Result 0 []
   in
-      fst (List.foldl (\n (prev, num) -> (((minScore n (reduceHays (List.length needles) num hays)) + prev), (num + 1)) ) (0, 0) needles)
+      fst (List.foldl accumulateResult (initialResult, 0) needles)
 
