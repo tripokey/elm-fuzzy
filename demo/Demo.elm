@@ -1,6 +1,6 @@
-import StartApp.Simple as StartApp
+import Html.App as StartApp
 import Html exposing (Html, input, div, text, button, span)
-import Html.Events exposing (on, targetValue, onClick)
+import Html.Events exposing (onInput, targetValue, onClick)
 import Html.Attributes exposing (placeholder, style)
 import Fuzzy
 import String
@@ -14,7 +14,7 @@ type alias Model =
   }
 
 
-type Action = Filter String
+type Msg = Filter String
   | Update String
   | Separate String
   | CaseFlip
@@ -37,7 +37,7 @@ init =
       ]
 
 
-update : Action -> Model -> Model
+update : Msg -> Model -> Model
 update action model =
   case action of
     Filter val ->
@@ -59,7 +59,7 @@ update action model =
       }
 
 
-viewElement : (Fuzzy.Result, String) -> Html
+viewElement : (Fuzzy.Result, String) -> Html Msg
 viewElement (result, item) =
   let
       isKey index =
@@ -96,7 +96,7 @@ viewElement (result, item) =
         ]
 
 
-viewHayStack : Model -> Html
+viewHayStack : Model -> Html Msg
 viewHayStack model =
   let
       processCase item =
@@ -121,8 +121,8 @@ viewHayStack model =
           |> List.map viewElement)
 
 
-viewFilter : Signal.Address Action -> Model -> Html
-viewFilter address model =
+viewFilter : Model -> Html Msg
+viewFilter model =
   let
       caseText =
         if model.caseInsensitive
@@ -133,36 +133,36 @@ viewFilter address model =
   in
       div []
         [ input
-          [ on "input" targetValue (\e -> Signal.message address (Filter e))
+          [ onInput (\e -> Filter e)
           , placeholder "Filter"
           ] []
         , input
-          [ on "input" targetValue (\e -> Signal.message address (Separate e))
+          [ onInput (\e -> Separate e)
           , placeholder "Separators"
           ] []
-        , button [ onClick address CaseFlip ] [ text caseText ]
+        , button [ onClick CaseFlip ] [ text caseText ]
         ]
 
 
-viewAdd : Signal.Address Action -> Model -> Html
-viewAdd address model =
+viewAdd : Model -> Html Msg
+viewAdd model =
   div []
     [ input
-      [ on "input" targetValue (\e -> Signal.message address (Update e))
+      [ onInput (\e -> Update e)
       , placeholder "Item"
       ] []
-    , button [ onClick address Add ] [ text "Add" ]
+    , button [ onClick Add ] [ text "Add" ]
     ]
 
 
-view : Signal.Address Action -> Model -> Html
-view address model =
+view : Model -> Html Msg
+view model =
   div []
-    [ viewFilter address model 
+    [ viewFilter model
     , viewHayStack model
-    , viewAdd address model
+    , viewAdd model
     ]
 
 
 main =
-  StartApp.start { model=init, update=update, view=view}
+  StartApp.beginnerProgram { model=init, update=update, view=view }

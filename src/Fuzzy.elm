@@ -1,4 +1,4 @@
-module Fuzzy (match, addPenalty, removePenalty, movePenalty, Result, Match, Key) where
+module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, Result, Match, Key)
 
 {-| This is library for performing fuzzy string matching.
 
