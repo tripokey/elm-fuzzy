@@ -92,32 +92,28 @@ quickSort [5,4,3,2,1] == (4, [1,2,3,4,5])
 -}
 quickSort : List Key -> ( Int, List Key )
 quickSort entries =
-    if List.isEmpty entries then
-        ( 0, [] )
-    else
-        let
-            head =
-                List.head entries |> Maybe.withDefault 0
+    case entries of
+        [] ->
+            ( 0, [] )
 
-            tail =
-                List.tail entries |> Maybe.withDefault []
+        head :: tail ->
+            let
+                partition =
+                    List.partition (\e -> e < head) tail
 
-            partition =
-                List.partition (\e -> e < head) tail
+                smaller =
+                    quickSort (fst partition)
 
-            smaller =
-                quickSort (fst partition)
+                larger =
+                    quickSort (snd partition)
 
-            larger =
-                quickSort (snd partition)
-
-            penalty =
-                if List.isEmpty (snd smaller) then
-                    0
-                else
-                    1
-        in
-            ( (fst smaller) + penalty + (fst larger), (snd smaller) ++ [ head ] ++ (snd larger) )
+                penalty =
+                    if List.isEmpty (snd smaller) then
+                        0
+                    else
+                        1
+            in
+                ( (fst smaller) + penalty + (fst larger), (snd smaller) ++ [ head ] ++ (snd larger) )
 
 
 {-| Calculate the fuzzy distance between two Strings.
@@ -166,61 +162,57 @@ distance config needle hay =
 -}
 dissect : List String -> List String -> List String
 dissect separators strings =
-    if List.isEmpty separators then
-        strings
-    else
-        let
-            head =
-                List.head separators |> Maybe.withDefault ""
+    case separators of
+        [] ->
+            strings
 
-            tail =
-                List.tail separators |> Maybe.withDefault []
+        head :: tail ->
+            let
+                dissectEntry entry =
+                    let
+                        entryLength =
+                            String.length entry
 
-            dissectEntry entry =
-                let
-                    entryLength =
-                        String.length entry
+                        indexes =
+                            String.indexes head entry
 
-                    indexes =
-                        String.indexes head entry
+                        separatorLength =
+                            String.length head
 
-                    separatorLength =
-                        String.length head
+                        slice index ( prevIndex, sum ) =
+                            let
+                                precedingSlice =
+                                    if prevIndex == index then
+                                        []
+                                    else
+                                        [ String.slice prevIndex index entry ]
 
-                    slice index ( prevIndex, sum ) =
-                        let
-                            precedingSlice =
-                                if prevIndex == index then
-                                    []
-                                else
-                                    [ String.slice prevIndex index entry ]
+                                separatorSlice =
+                                    [ String.slice index (index + separatorLength) entry ]
+                            in
+                                ( index + separatorLength, sum ++ precedingSlice ++ separatorSlice )
 
-                            separatorSlice =
-                                [ String.slice index (index + separatorLength) entry ]
-                        in
-                            ( index + separatorLength, sum ++ precedingSlice ++ separatorSlice )
+                        result =
+                            List.foldl slice ( 0, [] ) indexes
 
-                    result =
-                        List.foldl slice ( 0, [] ) indexes
+                        first =
+                            snd result
 
-                    first =
-                        snd result
+                        lastIndex =
+                            fst result
 
-                    lastIndex =
-                        fst result
+                        last =
+                            if lastIndex == entryLength then
+                                []
+                            else
+                                [ String.slice lastIndex entryLength entry ]
+                    in
+                        first ++ last
 
-                    last =
-                        if lastIndex == entryLength then
-                            []
-                        else
-                            [ String.slice lastIndex entryLength entry ]
-                in
-                    first ++ last
-
-            dissected =
-                List.foldl (\e s -> s ++ dissectEntry e) [] strings
-        in
-            dissect tail dissected
+                dissected =
+                    List.foldl (\e s -> s ++ dissectEntry e) [] strings
+            in
+                dissect tail dissected
 
 
 {-| Perform fuzzy matching between a query String (needle) and a target String (hay).
