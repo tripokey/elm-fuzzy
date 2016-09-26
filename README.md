@@ -2,6 +2,8 @@
 
 A library for fuzzy string matching written in Elm.
 
+See demo at: http://tripokey.github.io/elm-fuzzy/
+
 ## Basic Usage
 
 Sorting a list:
