@@ -11,8 +11,6 @@ module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, Result, Ma
 -}
 
 import String
-import Maybe
-
 
 type Config
     = AddPenalty Int
