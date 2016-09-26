@@ -3,6 +3,7 @@
 A library for fuzzy string matching written in Elm.
 
 See demo at: http://tripokey.github.io/elm-fuzzy/
+See documentation at: http://package.elm-lang.org/packages/tripokey/elm-fuzzy/latest
 
 ## Basic Usage
 
