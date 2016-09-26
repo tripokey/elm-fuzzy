@@ -1,0 +1,6 @@
+{
+  "name": "Elm-fuzzy",
+  "tagline": "A library for fuzzy string matching written in Elm",
+  "body": "# elm-fuzzy\r\n\r\nA library for fuzzy string matching written in Elm.\r\n\r\n## Basic Usage\r\n\r\nSorting a list:\r\n\r\n```elm\r\nlet\r\n    simpleMatch config separators needle hay =\r\n      match config separators needle hay |> .score\r\nin\r\n    List.sortBy (simpleMatch [] [] \"hrdevi\") [\"screen\", \"disk\", \"harddrive\", \"keyboard\", \"mouse\", \"computer\"] == [\"harddrive\",\"keyboard\",\"disk\",\"screen\",\"computer\",\"mouse\"]\r\n```\r\n",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
