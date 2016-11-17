@@ -24,6 +24,20 @@ type alias Key =
     Int
 
 
+{-| Extract the first value from a tuple.
+-}
+fst : (a1, a2) -> a1
+fst =
+    Tuple.first
+
+
+{-| Extract the second value from a tuple.
+-}
+snd : (a1, a2) -> a2
+snd =
+    Tuple.second
+
+
 {-| Represents a matching word in hay.
 score is the score that this Match contributes to the total score in a Result.
 offset is the index where this match starts in the hay.
