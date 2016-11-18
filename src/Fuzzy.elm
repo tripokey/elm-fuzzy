@@ -100,18 +100,18 @@ quickSort entries =
                     List.partition (\e -> e < head) tail
 
                 smaller =
-                    quickSort (fst partition)
+                    quickSort (Tuple.first partition)
 
                 larger =
-                    quickSort (snd partition)
+                    quickSort (Tuple.second partition)
 
                 penalty =
-                    if List.isEmpty (snd smaller) then
+                    if List.isEmpty (Tuple.second smaller) then
                         0
                     else
                         1
             in
-                ( (fst smaller) + penalty + (fst larger), (snd smaller) ++ [ head ] ++ (snd larger) )
+                ( (Tuple.first smaller) + penalty + (Tuple.first larger), (Tuple.second smaller) ++ [ head ] ++ (Tuple.second larger) )
 
 
 {-| Calculate the fuzzy distance between two Strings.
@@ -145,7 +145,7 @@ distance config needle hay =
             accumulated |> quickSort
 
         mPenalty =
-            (fst sorted) * config.movePenalty
+            (Tuple.first sorted) * config.movePenalty
 
         hPenalty =
             (String.length hay - (accumulated |> List.length)) * config.addPenalty
@@ -153,7 +153,7 @@ distance config needle hay =
         nPenalty =
             (String.length needle - (accumulated |> List.length)) * config.removePenalty
     in
-        Match (mPenalty + hPenalty + nPenalty) 0 (String.length hay) (snd sorted)
+        Match (mPenalty + hPenalty + nPenalty) 0 (String.length hay) (Tuple.second sorted)
 
 
 {-| Split a string based on a list of separators keeping the separators.
@@ -194,10 +194,10 @@ dissect separators strings =
                             List.foldl slice ( 0, [] ) indexes
 
                         first =
-                            snd result
+                            Tuple.second result
 
                         lastIndex =
-                            fst result
+                            Tuple.first result
 
                         last =
                             if lastIndex == entryLength then
@@ -281,7 +281,7 @@ match configs separators needle hay =
                     in
                         ( newMatch, newOffset )
             in
-                fst (List.foldl accumulateMatch ( initialMatch, offset ) hs)
+                Tuple.first (List.foldl accumulateMatch ( initialMatch, offset ) hs)
 
         -- Sentence logic, reduce hays on left and right side depending on current needle context
         reduceHays ns c hs =
@@ -316,4 +316,4 @@ match configs separators needle hay =
         initialResult =
             Result 0 []
     in
-        fst (List.foldl accumulateResult ( initialResult, 0 ) needles)
+        Tuple.first (List.foldl accumulateResult ( initialResult, 0 ) needles)

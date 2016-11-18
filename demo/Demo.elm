@@ -1,6 +1,5 @@
 module Main exposing (..)
 
-import Html.App as StartApp
 import Html exposing (Html, input, div, text, button, span)
 import Html.Events exposing (onInput, targetValue, onClick)
 import Html.Attributes exposing (placeholder, style)
@@ -119,7 +118,7 @@ viewElement ( result, item ) =
                     ]
                 ]
                 [ text ((toString result.score) ++ " ") ]
-            , span [] (fst highlight)
+            , span [] (Tuple.first highlight)
             ]
 
 
@@ -144,7 +143,7 @@ viewHayStack model =
                 |> List.map (\hay -> ( Fuzzy.match [] separators needle (processCase hay), hay ))
 
         sortedHays =
-            List.sortBy (\e -> fst e |> .score) scoredHays
+            List.sortBy (\e -> Tuple.first e |> .score) scoredHays
     in
         div []
             (sortedHays
@@ -198,4 +197,4 @@ view model =
 
 
 main =
-    StartApp.beginnerProgram { model = init, update = update, view = view }
+    Html.beginnerProgram { model = init, update = update, view = view }
