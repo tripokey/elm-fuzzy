@@ -1,4 +1,4 @@
-with import (fetchTarball https://github.com/NixOS/nixpkgs-channels/archive/a24728fe295f28648f1812b3565541f7ef6269f1.tar.gz) {};
+with import (fetchTarball https://github.com/NixOS/nixpkgs/archive/64ec4dd87bf7b211773541fa350ef2f56b9c658f.tar.gz) {};
 
 stdenv.mkDerivation {
   name = "elm-fuzzy";
