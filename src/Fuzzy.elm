@@ -1,9 +1,9 @@
-module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, Result, Match, Key)
+module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, Config, Result, Match, Key)
 
 {-| This is library for performing fuzzy string matching.
 
 # Customization
-@docs addPenalty, removePenalty, movePenalty
+@docs addPenalty, removePenalty, movePenalty, Config
 
 # Matching
 @docs match, Result, Match, Key
@@ -12,6 +12,9 @@ module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, Result, Ma
 
 import String
 
+
+{-| Represents a configuration element for customization.
+-}
 type Config
     = AddPenalty Int
     | RemovePenalty Int
