@@ -3,7 +3,7 @@ module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, Config, Re
 {-| This is library for performing fuzzy string matching.
 
 # Customization
-@docs addPenalty, removePenalty, movePenalty, Config
+@docs addPenalty, removePenalty, movePenalty, insertPenalty, Config
 
 # Matching
 @docs match, Result, Match, Key
@@ -19,6 +19,7 @@ type Config
     = AddPenalty Int
     | RemovePenalty Int
     | MovePenalty Int
+    | InsertPenalty Int
 
 
 {-| Represents a matching character in a Match.
@@ -66,16 +67,24 @@ movePenalty penalty =
     MovePenalty penalty
 
 
+{-| Create a penalty configuration that is applied to each character between two keys.
+-}
+insertPenalty : Int -> Config
+insertPenalty penalty =
+    InsertPenalty penalty
+
+
 type alias ConfigModel =
     { addPenalty : Int
     , movePenalty : Int
     , removePenalty : Int
+    , insertPenalty : Int
     }
 
 
 defaultConfig : ConfigModel
 defaultConfig =
-    ConfigModel 1 100 1000
+    ConfigModel 1 100 1000 0
 
 
 type alias Model =
@@ -155,8 +164,19 @@ distance config needle hay =
 
         nPenalty =
             (String.length needle - (accumulated |> List.length)) * config.removePenalty
+
+        accumulateInsertPenalty elem result =
+            case result of
+                ( Just prev, score ) ->
+                    ( Just elem, elem - 1 - prev + score )
+
+                ( Nothing, score ) ->
+                    ( Just elem, score )
+
+        iPenalty =
+            (Tuple.second sorted |> List.foldl accumulateInsertPenalty ( Nothing, 0 ) |> Tuple.second) * config.insertPenalty
     in
-        Match (mPenalty + hPenalty + nPenalty) 0 (String.length hay) (Tuple.second sorted)
+        Match (mPenalty + hPenalty + nPenalty + iPenalty) 0 (String.length hay) (Tuple.second sorted)
 
 
 {-| Split a string based on a list of separators keeping the separators.
@@ -248,6 +268,9 @@ match configs separators needle hay =
                 MovePenalty val ->
                     { sum | movePenalty = val }
 
+                InsertPenalty val ->
+                    { sum | insertPenalty = val }
+
         config =
             List.foldl accumulateConfig defaultConfig configs
 
@@ -264,6 +287,7 @@ match configs separators needle hay =
                     ((String.length n) * config.removePenalty)
                         + ((String.length n) * config.movePenalty)
                         + ((String.length hay) * config.addPenalty)
+                        + ((String.length hay) * (String.length n) * config.insertPenalty)
 
                 initialMatch =
                     Match initialPenalty offset 0 []
