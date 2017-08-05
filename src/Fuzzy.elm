@@ -84,7 +84,7 @@ type alias ConfigModel =
 
 defaultConfig : ConfigModel
 defaultConfig =
-    ConfigModel 1 100 1000 0
+    ConfigModel 10 1000 10000 1
 
 
 type alias Model =
