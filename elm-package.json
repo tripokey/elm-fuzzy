@@ -1,5 +1,5 @@
 {
-    "version": "5.1.0",
+    "version": "5.2.0",
     "summary": "A library for fuzzy string matching",
     "repository": "https://github.com/tripokey/elm-fuzzy.git",
     "license": "BSD3",
