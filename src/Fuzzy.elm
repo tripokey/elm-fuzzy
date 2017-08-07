@@ -129,7 +129,7 @@ quickSort entries =
 {-| Calculate the fuzzy distance between two Strings.
 
     (distance config "test" "test").score == 0
-    (distance config "test" "tast").score == 1001
+    (distance config "test" "tast").score == 10011
 -}
 distance : ConfigModel -> String -> String -> Match
 distance config needle hay =
@@ -239,19 +239,20 @@ dissect separators strings =
 {-| Perform fuzzy matching between a query String (needle) and a target String (hay).
 The order of the arguments are significant. Lower score is better. Specifying some
 separators will allow for partial matching within a sentence. The default configuration is
-movePenalty = 100, addPenalty = 1, removePenalty = 1000.
+addPenalty = 10, movePenalty = 1000, removePenalty = 10000, insertPenalty = 1.
 
     let
-        simpleMatch config separators needle hay =
+          simpleMatch config separators needle hay =
           match config separators needle hay |> .score
     in
         simpleMatch [] [] "test" "test" == 0
-        simpleMatch [] [] "tst" "test" == 1
-        simpleMatch [addPenalty 10000] [] "tst" "test" == 10000
-        simpleMatch [] [] "test" "tste" == 100
-        simpleMatch [] [] "test" "tst" == 1000
-        simpleMatch [] ["/"] "/u/b/s" "/usr/local/bin/sh" == 5
-        simpleMatch [] [] "/u/b/s" "/usr/local/bin/sh" == 211
+        simpleMatch [] [] "tes" "test" == 10
+        simpleMatch [addPenalty 10000] [] "tes" "test" == 10000
+        simpleMatch [] [] "tst" "test" == 11
+        simpleMatch [] [] "test" "tste" == 1000
+        simpleMatch [] [] "test" "tst" == 10000
+        simpleMatch [] ["/"] "/u/b/s" "/usr/local/bin/sh" == 50
+        simpleMatch [] [] "/u/b/s" "/usr/local/bin/sh" == 2116
         List.sortBy (simpleMatch [] [] "hrdevi") ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
 -}
 match : List Config -> List String -> String -> String -> Result
