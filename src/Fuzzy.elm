@@ -367,19 +367,6 @@ match configs separators needle hay =
 
         -- Sentence logic, reduce hays on left and right side depending on current needle context
         reduceHays ns c hs =
-            let
-                -- Reduce the left side of hays, the second needle do not need to match the first hay and so on.
-                reduceLeft ns c hs =
-                    ( List.foldl (\e sum -> String.length e + sum) 0 (List.take c hs), List.drop c hs )
-
-                -- Reduce the right side of hays, the first needle do not need to match against the last hay if there are other needles and so on.
-                reduceRight ns c hs =
-                    List.take (List.length hs - (ns - c - 1)) hs
-
-                -- Pad the hay stack to prevent hay starvation if we have more needles than hays
-                padHays ns hs =
-                    hs ++ List.repeat (ns - List.length hs) ""
-            in
             hs |> padHays ns |> reduceRight ns c |> reduceLeft ns c
 
         accumulateResult n ( prev, num ) =
@@ -399,3 +386,27 @@ match configs separators needle hay =
             Result 0 []
     in
     Tuple.first (List.foldl accumulateResult ( initialResult, 0 ) needles)
+
+
+
+-- Reduce the left side of hays, the second needle do not need to match the first hay and so on.
+
+
+reduceLeft ns c hs =
+    ( List.foldl (\e sum -> String.length e + sum) 0 (List.take c hs), List.drop c hs )
+
+
+
+-- Reduce the right side of hays, the first needle do not need to match against the last hay if there are other needles and so on.
+
+
+reduceRight ns c hs =
+    List.take (List.length hs - (ns - c - 1)) hs
+
+
+
+-- Pad the hay stack to prevent hay starvation if we have more needles than hays
+
+
+padHays ns hs =
+    hs ++ List.repeat (ns - List.length hs) ""
