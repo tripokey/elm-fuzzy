@@ -1,5 +1,6 @@
 module Main exposing (Model, Msg(..), init, main, update, view, viewAdd, viewElement, viewFilter, viewHayStack)
 
+import Browser
 import Fuzzy
 import Html exposing (Html, button, div, input, span, text)
 import Html.Attributes exposing (placeholder, style)
@@ -94,23 +95,25 @@ viewElement ( result, item ) =
 
         color index =
             if isKey index then
-                [ ( "color", "red" ) ]
+                Just ( "color", "red" )
 
             else
-                []
+                Nothing
 
         bgColor index =
             if isMatch index then
-                [ ( "background-color", "yellow" ) ]
+                Just ( "background-color", "yellow" )
 
             else
-                []
+                Nothing
 
         hStyle index =
-            style (color index ++ bgColor index)
+            [ color index, bgColor index ]
+                |> List.filterMap identity
+                |> List.map (\( styleName, styleValue ) -> style styleName styleValue)
 
         accumulateChar c ( sum, index ) =
-            ( sum ++ [ span [ hStyle index ] [ c |> String.fromChar |> text ] ], index + 1 )
+            ( sum ++ [ span (hStyle index) [ c |> String.fromChar |> text ] ], index + 1 )
 
         highlight =
             String.foldl accumulateChar ( [], 0 ) item
@@ -119,7 +122,7 @@ viewElement ( result, item ) =
         [ span
             [ style "color" "red"
             ]
-            [ text (toString result.score ++ " ") ]
+            [ text (String.fromInt result.score ++ " ") ]
         , span [] (Tuple.first highlight)
         ]
 
@@ -201,4 +204,4 @@ view model =
 
 
 main =
-    Html.beginnerProgram { model = init, update = update, view = view }
+    Browser.sandbox { init = init, update = update, view = view }
