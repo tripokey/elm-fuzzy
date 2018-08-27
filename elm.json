@@ -1,0 +1,15 @@
+{
+    "type": "package",
+    "name": "tripokey/elm-fuzzy",
+    "summary": "A library for fuzzy string matching",
+    "license": "BSD-3-Clause",
+    "version": "5.2.0",
+    "exposed-modules": [
+        "Fuzzy"
+    ],
+    "elm-version": "0.19.0 <= v < 0.20.0",
+    "dependencies": {
+        "elm/core": "1.0.0 <= v < 2.0.0"
+    },
+    "test-dependencies": {}
+}

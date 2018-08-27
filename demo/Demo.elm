@@ -1,9 +1,10 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), init, main, update, view, viewAdd, viewElement, viewFilter, viewHayStack)
 
-import Html exposing (Html, input, div, text, button, span)
-import Html.Events exposing (onInput, targetValue, onClick)
-import Html.Attributes exposing (placeholder, style)
+import Browser
 import Fuzzy
+import Html exposing (Html, button, div, input, span, text)
+import Html.Attributes exposing (placeholder, style)
+import Html.Events exposing (onClick, onInput, targetValue)
 import String
 
 
@@ -73,6 +74,7 @@ viewElement ( result, item ) =
                 (\e sum ->
                     if not sum then
                         List.member (index - e.offset) e.keys
+
                     else
                         sum
                 )
@@ -83,7 +85,8 @@ viewElement ( result, item ) =
             List.foldl
                 (\e sum ->
                     if not sum then
-                        (e.offset <= index && (e.offset + e.length) > index)
+                        e.offset <= index && (e.offset + e.length) > index
+
                     else
                         sum
                 )
@@ -92,34 +95,36 @@ viewElement ( result, item ) =
 
         color index =
             if isKey index then
-                [ ( "color", "red" ) ]
+                Just ( "color", "red" )
+
             else
-                []
+                Nothing
 
         bgColor index =
             if isMatch index then
-                [ ( "background-color", "yellow" ) ]
+                Just ( "background-color", "yellow" )
+
             else
-                []
+                Nothing
 
         hStyle index =
-            style ((color index) ++ (bgColor index))
+            [ color index, bgColor index ]
+                |> List.filterMap identity
+                |> List.map (\( styleName, styleValue ) -> style styleName styleValue)
 
         accumulateChar c ( sum, index ) =
-            ( sum ++ [ span [ hStyle index ] [ c |> String.fromChar |> text ] ], index + 1 )
+            ( sum ++ [ span (hStyle index) [ c |> String.fromChar |> text ] ], index + 1 )
 
         highlight =
             String.foldl accumulateChar ( [], 0 ) item
     in
-        div []
-            [ span
-                [ style
-                    [ ( "color", "red" )
-                    ]
-                ]
-                [ text ((toString result.score) ++ " ") ]
-            , span [] (Tuple.first highlight)
+    div []
+        [ span
+            [ style "color" "red"
             ]
+            [ text (String.fromInt result.score ++ " ") ]
+        , span [] (Tuple.first highlight)
+        ]
 
 
 viewHayStack : Model -> Html Msg
@@ -128,6 +133,7 @@ viewHayStack model =
         processCase item =
             if model.caseInsensitive then
                 String.toLower item
+
             else
                 item
 
@@ -145,10 +151,10 @@ viewHayStack model =
         sortedHays =
             List.sortBy (\e -> Tuple.first e |> .score) scoredHays
     in
-        div []
-            (sortedHays
-                |> List.map viewElement
-            )
+    div []
+        (sortedHays
+            |> List.map viewElement
+        )
 
 
 viewFilter : Model -> Html Msg
@@ -157,22 +163,23 @@ viewFilter model =
         caseText =
             if model.caseInsensitive then
                 "Case insensitive"
+
             else
                 "Case sensitive"
     in
-        div []
-            [ input
-                [ onInput (\e -> Filter e)
-                , placeholder "Filter"
-                ]
-                []
-            , input
-                [ onInput (\e -> Separate e)
-                , placeholder "Separators"
-                ]
-                []
-            , button [ onClick CaseFlip ] [ text caseText ]
+    div []
+        [ input
+            [ onInput (\e -> Filter e)
+            , placeholder "Filter"
             ]
+            []
+        , input
+            [ onInput (\e -> Separate e)
+            , placeholder "Separators"
+            ]
+            []
+        , button [ onClick CaseFlip ] [ text caseText ]
+        ]
 
 
 viewAdd : Model -> Html Msg
@@ -197,4 +204,4 @@ view model =
 
 
 main =
-    Html.beginnerProgram { model = init, update = update, view = view }
+    Browser.sandbox { init = init, update = update, view = view }

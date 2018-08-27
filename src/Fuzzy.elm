@@ -1,11 +1,18 @@
-module Fuzzy exposing (match, addPenalty, removePenalty, movePenalty, insertPenalty, Config, Result, Match, Key)
+module Fuzzy exposing
+    ( addPenalty, removePenalty, movePenalty, insertPenalty, Config
+    , match, Result, Match, Key
+    )
 
 {-| This is library for performing fuzzy string matching.
 
+
 # Customization
+
 @docs addPenalty, removePenalty, movePenalty, insertPenalty, Config
 
+
 # Matching
+
 @docs match, Result, Match, Key
 
 -}
@@ -99,6 +106,7 @@ initialModel =
 {-| Sort the entries and calculate how many moves that was required.
 
 quickSort [5,4,3,2,1] == (4, [1,2,3,4,5])
+
 -}
 quickSort : List Key -> ( Int, List Key )
 quickSort entries =
@@ -120,16 +128,19 @@ quickSort entries =
                 penalty =
                     if List.isEmpty (Tuple.second smaller) then
                         0
+
                     else
                         1
             in
-                ( (Tuple.first smaller) + penalty + (Tuple.first larger), (Tuple.second smaller) ++ [ head ] ++ (Tuple.second larger) )
+            ( Tuple.first smaller + penalty + Tuple.first larger, Tuple.second smaller ++ [ head ] ++ Tuple.second larger )
 
 
 {-| Calculate the fuzzy distance between two Strings.
 
     (distance config "test" "test").score == 0
+
     (distance config "test" "tast").score == 10011
+
 -}
 distance : ConfigModel -> String -> String -> Match
 distance config needle hay =
@@ -143,12 +154,12 @@ distance config needle hay =
                     List.filter (\e -> not (List.member e indexList)) indexes
                         |> List.head
             in
-                case hayIndex of
-                    Just v ->
-                        indexList ++ [ v ]
+            case hayIndex of
+                Just v ->
+                    indexList ++ [ v ]
 
-                    Nothing ->
-                        indexList
+                Nothing ->
+                    indexList
 
         accumulated =
             String.foldl accumulate initialModel needle
@@ -157,7 +168,7 @@ distance config needle hay =
             accumulated |> quickSort
 
         mPenalty =
-            (Tuple.first sorted) * config.movePenalty
+            Tuple.first sorted * config.movePenalty
 
         hPenalty =
             (String.length hay - (accumulated |> List.length)) * config.addPenalty
@@ -176,7 +187,7 @@ distance config needle hay =
         iPenalty =
             (Tuple.second sorted |> List.foldl accumulateInsertPenalty ( Nothing, 0 ) |> Tuple.second) * config.insertPenalty
     in
-        Match (mPenalty + hPenalty + nPenalty + iPenalty) 0 (String.length hay) (Tuple.second sorted)
+    Match (mPenalty + hPenalty + nPenalty + iPenalty) 0 (String.length hay) (Tuple.second sorted)
 
 
 {-| Split a string based on a list of separators keeping the separators.
@@ -205,13 +216,14 @@ dissect separators strings =
                                 precedingSlice =
                                     if prevIndex == index then
                                         []
+
                                     else
                                         [ String.slice prevIndex index entry ]
 
                                 separatorSlice =
                                     [ String.slice index (index + separatorLength) entry ]
                             in
-                                ( index + separatorLength, sum ++ precedingSlice ++ separatorSlice )
+                            ( index + separatorLength, sum ++ precedingSlice ++ separatorSlice )
 
                         result =
                             List.foldl slice ( 0, [] ) indexes
@@ -225,15 +237,16 @@ dissect separators strings =
                         last =
                             if lastIndex == entryLength then
                                 []
+
                             else
                                 [ String.slice lastIndex entryLength entry ]
                     in
-                        first ++ last
+                    first ++ last
 
                 dissected =
                     List.foldl (\e s -> s ++ dissectEntry e) [] strings
             in
-                dissect tail dissected
+            dissect tail dissected
 
 
 {-| Perform fuzzy matching between a query String (needle) and a target String (hay).
@@ -242,18 +255,58 @@ separators will allow for partial matching within a sentence. The default config
 addPenalty = 10, movePenalty = 1000, removePenalty = 10000, insertPenalty = 1.
 
     let
-          simpleMatch config separators needle hay =
-          match config separators needle hay |> .score
+        simpleMatch config separators needle hay =
+            match config separators needle hay |> .score
     in
-        simpleMatch [] [] "test" "test" == 0
-        simpleMatch [] [] "tes" "test" == 10
-        simpleMatch [addPenalty 10000] [] "tes" "test" == 10000
-        simpleMatch [] [] "tst" "test" == 11
-        simpleMatch [] [] "test" "tste" == 1000
-        simpleMatch [] [] "test" "tst" == 10000
-        simpleMatch [] ["/"] "/u/b/s" "/usr/local/bin/sh" == 50
-        simpleMatch [] [] "/u/b/s" "/usr/local/bin/sh" == 2116
-        List.sortBy (simpleMatch [] [] "hrdevi") ["screen", "disk", "harddrive", "keyboard", "mouse", "computer"] == ["harddrive","keyboard","disk","screen","computer","mouse"]
+    simpleMatch [] [] "test" "test"
+        == 0
+            simpleMatch
+            []
+            []
+            "tes"
+            "test"
+        == 10
+            simpleMatch
+            [ addPenalty 10000 ]
+            []
+            "tes"
+            "test"
+        == 10000
+            simpleMatch
+            []
+            []
+            "tst"
+            "test"
+        == 11
+            simpleMatch
+            []
+            []
+            "test"
+            "tste"
+        == 1000
+            simpleMatch
+            []
+            []
+            "test"
+            "tst"
+        == 10000
+            simpleMatch
+            []
+            [ "/" ]
+            "/u/b/s"
+            "/usr/local/bin/sh"
+        == 50
+            simpleMatch
+            []
+            []
+            "/u/b/s"
+            "/usr/local/bin/sh"
+        == 2116
+            List.sortBy
+            (simpleMatch [] [] "hrdevi")
+            [ "screen", "disk", "harddrive", "keyboard", "mouse", "computer" ]
+        == [ "harddrive", "keyboard", "disk", "screen", "computer", "mouse" ]
+
 -}
 match : List Config -> List String -> String -> String -> Result
 match configs separators needle hay =
@@ -285,10 +338,10 @@ match configs separators needle hay =
         minScore n ( offset, hs ) =
             let
                 initialPenalty =
-                    ((String.length n) * config.removePenalty)
-                        + ((String.length n) * config.movePenalty)
-                        + ((String.length hay) * config.addPenalty)
-                        + ((String.length hay) * (String.length n) * config.insertPenalty)
+                    (String.length n * config.removePenalty)
+                        + (String.length n * config.movePenalty)
+                        + (String.length hay * config.addPenalty)
+                        + (String.length hay * String.length n * config.insertPenalty)
 
                 initialMatch =
                     Match initialPenalty offset 0 []
@@ -299,34 +352,22 @@ match configs separators needle hay =
                             distance config n e
 
                         newOffset =
-                            prevOffset + (String.length e)
+                            prevOffset + String.length e
 
                         newMatch =
                             if eDistance.score < prev.score then
                                 { eDistance | offset = prevOffset }
+
                             else
                                 prev
                     in
-                        ( newMatch, newOffset )
+                    ( newMatch, newOffset )
             in
-                Tuple.first (List.foldl accumulateMatch ( initialMatch, offset ) hs)
+            Tuple.first (List.foldl accumulateMatch ( initialMatch, offset ) hs)
 
         -- Sentence logic, reduce hays on left and right side depending on current needle context
         reduceHays ns c hs =
-            let
-                -- Reduce the left side of hays, the second needle do not need to match the first hay and so on.
-                reduceLeft ns c hs =
-                    ( List.foldl (\e sum -> (String.length e) + sum) 0 (List.take c hs), List.drop c hs )
-
-                -- Reduce the right side of hays, the first needle do not need to match against the last hay if there are other needles and so on.
-                reduceRight ns c hs =
-                    List.take ((List.length hs) - (ns - c - 1)) hs
-
-                -- Pad the hay stack to prevent hay starvation if we have more needles than hays
-                padHays ns hs =
-                    hs ++ (List.repeat (ns - (List.length hs)) "")
-            in
-                hs |> padHays ns |> reduceRight ns c |> reduceLeft ns c
+            hs |> padHays ns |> reduceRight ns c |> reduceLeft ns c
 
         accumulateResult n ( prev, num ) =
             let
@@ -339,9 +380,33 @@ match configs separators needle hay =
                         , matches = prev.matches ++ [ matchResult ]
                     }
             in
-                ( newResult, (num + 1) )
+            ( newResult, num + 1 )
 
         initialResult =
             Result 0 []
     in
-        Tuple.first (List.foldl accumulateResult ( initialResult, 0 ) needles)
+    Tuple.first (List.foldl accumulateResult ( initialResult, 0 ) needles)
+
+
+
+-- Reduce the left side of hays, the second needle do not need to match the first hay and so on.
+
+
+reduceLeft ns c hs =
+    ( List.foldl (\e sum -> String.length e + sum) 0 (List.take c hs), List.drop c hs )
+
+
+
+-- Reduce the right side of hays, the first needle do not need to match against the last hay if there are other needles and so on.
+
+
+reduceRight ns c hs =
+    List.take (List.length hs - (ns - c - 1)) hs
+
+
+
+-- Pad the hay stack to prevent hay starvation if we have more needles than hays
+
+
+padHays ns hs =
+    hs ++ List.repeat (ns - List.length hs) ""
