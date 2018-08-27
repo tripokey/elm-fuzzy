@@ -1,4 +1,4 @@
-with import (fetchTarball https://github.com/NixOS/nixpkgs/archive/64ec4dd87bf7b211773541fa350ef2f56b9c658f.tar.gz) {};
+with import (fetchTarball https://github.com/NixOS/nixpkgs/archive/aa8bdaf0c4ed67acfab6a1977b70c356bbf0543a.tar.gz) {};
 
 stdenv.mkDerivation {
   name = "elm-fuzzy";
@@ -9,7 +9,7 @@ stdenv.mkDerivation {
 
   buildPhase = ''
     cd demo
-    HOME=$PWD elm-make --yes Demo.elm
+    HOME=$PWD elm make Demo.elm
     '';
 
   installPhase = ''
